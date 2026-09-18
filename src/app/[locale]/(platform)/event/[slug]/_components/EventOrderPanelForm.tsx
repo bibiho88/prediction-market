@@ -1339,12 +1339,12 @@ export default function EventOrderPanelForm({
       return false
     }
 
-    const currentChainId = await activeWalletConnector.getChainId()
-    if (currentChainId === DEFAULT_CHAIN_ID) {
-      return true
-    }
-
     try {
+      const currentChainId = await activeWalletConnector.getChainId()
+      if (currentChainId === DEFAULT_CHAIN_ID) {
+        return true
+      }
+
       await runWithSignaturePrompt(
         () =>
           switchChain(wagmiConfig, {

@@ -13,7 +13,7 @@ import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { getAddress, isAddress } from 'viem'
 import { cookieToInitialState, useConfig, WagmiProvider } from 'wagmi'
-import { switchChain } from 'wagmi/actions'
+import { getConnections, switchChain } from 'wagmi/actions'
 
 import type { User } from '@/types'
 
@@ -208,11 +208,11 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
   const { address, embeddedWalletInfo, isConnected } = useAppKitAccount({ namespace: 'eip155' })
   const { chainId } = useAppKitNetwork()
   const attemptedAddressRef = useRef<string | null>(null)
-  const isUnsupportedChain = isUnsupportedAppKitChain(chainId)
+  const isWrongSiweChain = normalizeAppKitChainId(chainId) !== DEFAULT_CHAIN_ID
 
   useEffect(() => {
     const normalizedAddress = address?.toLowerCase()
-    if (!isConnected || !normalizedAddress || isUnsupportedChain) {
+    if (!isConnected || !normalizedAddress || isWrongSiweChain) {
       attemptedAddressRef.current = null
       return
     }
@@ -292,7 +292,7 @@ function AutoSiweAuthentication({ siweClient }: { siweClient: AppKitSIWEClient }
         resetAttemptedAddress()
       }
     }
-  }, [address, embeddedWalletInfo, isConnected, isUnsupportedChain, siweClient, t])
+  }, [address, embeddedWalletInfo, isConnected, isWrongSiweChain, siweClient, t])
 
   return null
 }
@@ -334,10 +334,24 @@ function UnsupportedNetworkSwitchPrompt() {
     void (async () => {
       try {
         await closeAppKit()
-        await runWithSignaturePrompt(() => switchChain(wagmiConfig, { chainId: DEFAULT_CHAIN_ID }), {
-          title: t('Confirm network switch'),
-          description: t('Confirm the network switch in your wallet.'),
-        })
+        const connection = getConnections(wagmiConfig).find(({ accounts }) =>
+          accounts.some((account) => account.toLowerCase() === address.toLowerCase()),
+        )
+        if (!connection) {
+          throw new Error('The connected wallet is not available for network switching.')
+        }
+
+        await runWithSignaturePrompt(
+          () =>
+            switchChain(wagmiConfig, {
+              chainId: DEFAULT_CHAIN_ID,
+              connector: connection.connector,
+            }),
+          {
+            title: t('Confirm network switch'),
+            description: t('Confirm the network switch in your wallet.'),
+          },
+        )
       } catch (error) {
         console.warn('[Wallet] Automatic network switch failed', error)
       } finally {
@@ -594,6 +608,7 @@ function initializeAppKitSingleton(
       adapters: [wagmiAdapter],
       themeMode,
       defaultAccountTypes: { eip155: 'eoa' },
+      allowUnsupportedChain: true,
       metadata: {
         name: site.name,
         description: site.description,
