@@ -22,6 +22,8 @@ const mocks = hoisted(() => ({
   siweClientSignIn: mock(),
   siwxRequestSignMessage: mock(),
   useAppKitAccount: mock(),
+  useAppKitNetwork: mock(() => ({ chainId: 1 })),
+  useAppKitState: mock(() => ({ open: false, loading: false })),
   useSignMessage: mock(),
   WagmiProvider: mock(({ children }: any) => children),
 }))
@@ -36,6 +38,8 @@ void mock.module('@reown/appkit/react', () => ({
   __esModule: true,
   createAppKit: mocks.createAppKit,
   useAppKitAccount: mocks.useAppKitAccount,
+  useAppKitNetwork: mocks.useAppKitNetwork,
+  useAppKitState: mocks.useAppKitState,
   useAppKitTheme: () => ({ setThemeMode: mocks.setThemeMode }),
 }))
 
@@ -78,7 +82,12 @@ void mock.module('wagmi', () => ({
   cookieToInitialState: mocks.cookieToInitialState,
   WagmiProvider: mocks.WagmiProvider,
   useConnections: () => [],
+  useConfig: () => ({}),
   useSignMessage: mocks.useSignMessage,
+}))
+
+void mock.module('wagmi/actions', () => ({
+  switchChain: mock(),
 }))
 
 void mock.module('next-themes', () => ({

@@ -7,6 +7,8 @@ const createAppKit = mock()
 void mock.module('@reown/appkit/react', () => ({
   createAppKit,
   useAppKitAccount: mock(),
+  useAppKitNetwork: mock(() => ({ chainId: 1 })),
+  useAppKitState: mock(() => ({ open: false, loading: false })),
   useAppKitTheme: () => ({ setThemeMode: mock() }),
 }))
 
@@ -36,7 +38,12 @@ void mock.module('wagmi', () => ({
   cookieToInitialState: mock(),
   WagmiProvider: ({ children }: { children: unknown }) => children,
   useConnections: () => [],
+  useConfig: () => ({}),
   useSignMessage: mock(),
+}))
+
+void mock.module('wagmi/actions', () => ({
+  switchChain: mock(),
 }))
 
 void mock.module('next-intl', () => ({ useExtracted: () => (value: string) => value }))
